@@ -18,9 +18,13 @@
 
 (ns org.apache.flink.clojure.WordCount
   (:import
-  (org.apache.flink.api.common.functions FlatMapFunction)
-  (org.apache.flink.api.java ExecutionEnvironment)
-  (org.apache.flink.api.java.tuple Tuple2))
+   (org.apache.flink.api.common.functions FlatMapFunction)
+   (org.apache.flink.api.java DataSet)
+   (org.apache.flink.api.java ExecutionEnvironment)
+   (org.apache.flink.api.java.tuple Tuple2)
+   (org.apache.flink.java WordCountTuple)
+   (org.apache.flink.util Collector)
+   (java.lang String))
   (:require [clojure.string :as str])
   (:gen-class))
 
@@ -29,17 +33,13 @@
 (def text (.fromElements flink-env (to-array ["please test me and me too"])))
 
 (deftype tokenizer [] FlatMapFunction
-                     (flatMap [this value collector]
-                       (doseq [v (str/split value #"\s")]
-                           (.collect collector (Tuple2. v (int 1))))))
+         (flatMap [this value collector]
+           (doseq [v (str/split value #"\s")]
+             (.collect collector (Tuple2. v (int 1))))))
 
-(def tokens (.returns (.flatMap text (tokenizer.)) "Tuple2<String,Integer>"))
+(def tokens (.returns (.flatMap text (tokenizer.)) WordCountTuple))
 
 (def counts (.sum (.groupBy tokens (int-array [0])) 1))
 
 (defn -main []
-  (.print counts)
-)
-
-;; enable to execute within Intellij
-;;(-main)
+  (.print counts))
